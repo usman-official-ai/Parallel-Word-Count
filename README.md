@@ -4,6 +4,11 @@
 [![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-orange.svg)](https://jupyter.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+<img width="1536" height="1024" alt="Image" src="https://github.com/user-attachments/assets/9137c237-99a5-44c1-8d69-e1387c37cc26" />
+
+
+
+
 ## 📌 Overview
 
 A high-performance **parallel computing implementation** for word counting in large text files. This project demonstrates the efficiency of distributed processing by comparing sequential vs parallel approaches for text analysis tasks.
