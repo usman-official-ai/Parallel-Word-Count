@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Parallel Word Count | Text + PDF Processor</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- PDF.js for PDF parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f4fc 0%, #e8edf5 100%);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .title-section h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1a2a3f, #1e3a6f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .title-section p {
+            color: #4a627a;
+            font-size: 0.85rem;
+        }
+        .badge {
+            background: white;
+            padding: 0.5rem 1.2rem;
+            border-radius: 60px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        /* Main Grid */
+        .grid-2col {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .col-left {
+            flex: 1.2;
+            min-width: 300px;
+        }
+        .col-right {
+            flex: 1;
+            min-width: 280px;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 28px;
+            padding: 1.3rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.03);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .card-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: #1a344d;
+            border-left: 4px solid #3b82f6;
+            padding-left: 0.8rem;
+        }
+
+        /* Text Input Area */
+        .text-input-area {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 20px;
+            border: 1px solid #cfdfed;
+            background: #fafcff;
+            font-size: 0.9rem;
+            resize: vertical;
+            font-family: monospace;
+        }
+        textarea {
+            width: 100%;
+            min-height: 180px;
+            padding: 1rem;
+            border-radius: 20px;
+            border: 1px solid #cfdfed;
+            font-family: monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+        }
+        .file-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 20px;
+            padding: 1.2rem;
+            text-align: center;
+            background: #fafcff;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .file-zone:hover {
+            border-color: #3b82f6;
+            background: #f0f4fe;
+        }
+        button {
+            background: #1e3a5f;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 60px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button:hover {
+            background: #0f2b44;
+            transform: scale(0.97);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #bdd4e7;
+            color: #1f4970;
+        }
+        .btn-outline:hover {
+            background: #eef3fc;
+            transform: none;
+        }
+
+        /* KPI Row */
+        .kpi-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .kpi-card {
+            background: white;
+            border-radius: 24px;
+            padding: 0.9rem 1.2rem;
+            flex: 1;
+            min-width: 120px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            border: 1px solid #eef2ff;
+        }
+        .kpi-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #5b7c9e;
+        }
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #1e3a5f;
+        }
+
+        /* Tables */
+        .word-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+        .word-table th, .word-table td {
+            padding: 0.5rem 0.3rem;
+            text-align: left;
+            border-bottom: 1px solid #eef2ff;
+        }
+        .progress-bar {
+            background: #e2e8f0;
+            border-radius: 20px;
+            height: 6px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: #3b82f6;
+            width: 0%;
+            height: 100%;
+            border-radius: 20px;
+        }
+        canvas { max-height: 200px; width: 100%; }
+        .badge-pill {
+            background: #eef2ff;
+            padding: 0.2rem 0.6rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.7rem;
+            color: #7c8ea0;
+        }
+        @media (max-width: 800px) {
+            body { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="header">
+        <div class="title-section">
+            <h1><i class="fas fa-tachometer-alt"></i> Parallel Word Count Engine</h1>
+            <p>Multi-source text analytics | PDF & raw text processing | Real-time frequency intelligence</p>
+        </div>
+        <div class="badge"><i class="fas fa-microchip"></i> parallel processing · NLP ready</div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-row">
+        <div class="kpi-card"><div class="kpi-label">Total Words</div><div class="kpi-value" id="totalWordsKpi">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Unique Words</div><div class="kpi-value" id="uniqueWordsKpi">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">Top Word Freq</div><div class="kpi-value" id="topWordFreqKpi">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Sources</div><div class="kpi-value" id="sourcesCountKpi">0</div></div>
+    </div>
+
+    <div class="grid-2col">
+        <!-- LEFT COLUMN: Input Sources -->
+        <div class="col-left">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-font"></i> Text Input (Direct)</div>
+                <textarea id="directTextInput" placeholder="Paste or type your text here...&#10;Example: The quick brown fox jumps over the lazy dog. Parallel word counting is powerful."></textarea>
+                <div style="display: flex; gap: 0.8rem; margin-top: 0.8rem;">
+                    <button id="processTextBtn"><i class="fas fa-chart-line"></i> Analyze Text</button>
+                    <button id="clearTextBtn" class="btn-outline"><i class="fas fa-trash-alt"></i> Clear</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-file-pdf"></i> PDF Upload & Processing</div>
+                <div class="file-zone" id="pdfDropZone">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 1.8rem; color:#5b7c9e;"></i>
+                    <p>Click or drag PDF here</p>
+                    <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;">
+                    <button id="uploadPdfBtn" class="btn-outline" style="margin-top: 8px;"><i class="fas fa-folder-open"></i> Select PDF</button>
+                </div>
+                <div id="pdfStatus" style="font-size:0.75rem; margin-top: 8px; color:#2c7da0;"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-history"></i> Processing History</div>
+                <div id="historyLog" style="max-height: 150px; overflow-y: auto; font-size:0.75rem;">
+                    <i class="fas fa-info-circle"></i> No analysis yet. Submit text or PDF.
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Results & Analytics -->
+        <div class="col-right">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-chart-bar"></i> Word Frequency Distribution</div>
+                <canvas id="wordChart" width="400" height="180"></canvas>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-table-list"></i> Top 10 Words</div>
+                <div style="max-height: 260px; overflow-y: auto;">
+                    <table class="word-table" id="wordFrequencyTable">
+                        <thead><tr><th>Rank</th><th>Word</th><th>Count</th><th>%</th></tr></thead>
+                        <tbody><tr><td colspan="4" style="text-align:center;">No data</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-chart-simple"></i> Vocabulary Insights</div>
+                <div id="insightText" style="font-size:0.8rem; color:#2c3e66;">
+                    <i class="fas fa-lightbulb"></i> Submit text or PDF to see lexical density & stats.
+                </div>
+                <div class="progress-bar" style="margin-top: 10px;"><div class="progress-fill" id="lexicalDensityFill" style="width:0%"></div></div>
+                <div id="lexicalDensityLabel" style="font-size:0.7rem; margin-top:4px;">Lexical Density: 0%</div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <i class="fas fa-microchip"></i> Parallel word counting engine | Supports plain text & PDF extraction | Real-time frequency analysis
+    </div>
+</div>
+
+<script>
+    // PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    // Global state: aggregated word frequency map (across multiple sources)
+    let globalWordMap = new Map();  // word -> count
+    let totalWordsCount = 0;
+    let sourcesProcessed = 0;       // number of documents/text chunks processed
+
+    // UI Elements
+    const totalWordsSpan = document.getElementById('totalWordsKpi');
+    const uniqueWordsSpan = document.getElementById('uniqueWordsKpi');
+    const topWordFreqSpan = document.getElementById('topWordFreqKpi');
+    const sourcesCountSpan = document.getElementById('sourcesCountKpi');
+    const wordTableBody = document.querySelector('#wordFrequencyTable tbody');
+    const insightDiv = document.getElementById('insightText');
+    const lexicalFill = document.getElementById('lexicalDensityFill');
+    const lexicalLabel = document.getElementById('lexicalDensityLabel');
+    const historyLogDiv = document.getElementById('historyLog');
+    const pdfStatusDiv = document.getElementById('pdfStatus');
+
+    let chartInstance = null;
+
+    // Helper: clean and tokenize text (lowercase, remove punctuation, split)
+    function tokenizeText(text) {
+        // Normalize: lowercase, remove punctuation except apostrophes for basic words, split on whitespace
+        let cleaned = text.toLowerCase();
+        // remove punctuation like .,!?;:"()[]{}<> but keep letters, numbers, apostrophes
+        cleaned = cleaned.replace(/[^a-z0-9\u00C0-\u00FF\s']/g, ' ');
+        // split by whitespace and filter out empty strings
+        let words = cleaned.split(/\s+/).filter(w => w.length > 0 && !/^\d+$/.test(w) && w.length < 40);
+        return words;
+    }
+
+    // Process word array and update global map
+    function processWordArray(wordsArray, sourceLabel) {
+        if (!wordsArray.length) {
+            addHistory(`⚠️ ${sourceLabel} contained no valid words.`);
+            return false;
+        }
+        let localCount = wordsArray.length;
+        let localMap = new Map();
+        for (let w of wordsArray) {
+            localMap.set(w, (localMap.get(w) || 0) + 1);
+        }
+        // Merge into global map
+        for (let [word, cnt] of localMap.entries()) {
+            globalWordMap.set(word, (globalWordMap.get(word) || 0) + cnt);
+        }
+        totalWordsCount += localCount;
+        sourcesProcessed++;
+        addHistory(`✅ ${sourceLabel}: ${localCount} words, ${localMap.size} unique.`);
+        updateDashboard();
+        return true;
+    }
+
+    // Add to history log
+    function addHistory(message) {
+        const timestamp = new Date().toLocaleTimeString();
+        if (historyLogDiv.innerHTML.includes('No analysis yet')) {
+            historyLogDiv.innerHTML = '';
+        }
+        const entry = document.createElement('div');
+        entry.style.padding = '4px 0';
+        entry.style.borderBottom = '1px solid #eef2ff';
+        entry.innerHTML = `<span class="badge-pill">${timestamp}</span> ${message}`;
+        historyLogDiv.prepend(entry);
+        if (historyLogDiv.children.length > 12) historyLogDiv.removeChild(historyLogDiv.lastChild);
+    }
+
+    // Update all KPIs, table, chart, insights
+    function updateDashboard() {
+        // Update KPI
+        totalWordsSpan.innerText = totalWordsCount.toLocaleString();
+        const uniqueCount = globalWordMap.size;
+        uniqueWordsSpan.innerText = uniqueCount.toLocaleString();
+        sourcesCountSpan.innerText = sourcesProcessed;
+
+        // Find top word frequency
+        let topWord = '';
+        let topCount = 0;
+        for (let [word, cnt] of globalWordMap.entries()) {
+            if (cnt > topCount) { topCount = cnt; topWord = word; }
+        }
+        if (topWord) topWordFreqSpan.innerText = `${topWord} (${topCount})`;
+        else topWordFreqSpan.innerText = '—';
+
+        // Build sorted word list for table & chart
+        let sortedWords = Array.from(globalWordMap.entries()).sort((a,b) => b[1] - a[1]);
+        const top10 = sortedWords.slice(0, 10);
+        renderTable(top10);
+        renderChart(top10);
+
+        // Lexical Density = unique words / total words * 100
+        let lexicalDensity = totalWordsCount > 0 ? (uniqueCount / totalWordsCount) * 100 : 0;
+        lexicalFill.style.width = `${Math.min(100, lexicalDensity)}%`;
+        lexicalLabel.innerText = `Lexical Density: ${lexicalDensity.toFixed(1)}% (unique/total)`;
+        if (totalWordsCount === 0) {
+            insightDiv.innerHTML = `<i class="fas fa-lightbulb"></i> No data yet. Add text or upload PDF to begin parallel word count.`;
+        } else {
+            insightDiv.innerHTML = `<i class="fas fa-chart-line"></i> Corpus: ${totalWordsCount} total words, ${uniqueCount} distinct terms. Top term "${topWord}" appears ${topCount} times.`;
+        }
+    }
+
+    function renderTable(topEntries) {
+        if (!topEntries.length) {
+            wordTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No data</td></tr>';
+            return;
+        }
+        let html = '';
+        let total = totalWordsCount;
+        topEntries.forEach(([word, cnt], idx) => {
+            let percent = total > 0 ? ((cnt / total) * 100).toFixed(1) : '0';
+            html += `<tr>
+                        <td>${idx+1}</td>
+                        <td><strong>${escapeHtml(word)}</strong></td>
+                        <td>${cnt}</td>
+                        <td>${percent}%</td>
+                     </tr>`;
+        });
+        wordTableBody.innerHTML = html;
+    }
+
+    function renderChart(topEntries) {
+        const ctx = document.getElementById('wordChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+        if (!topEntries.length) {
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: ['No Data'], datasets: [{ label: 'Frequency', data: [0], backgroundColor: '#cbd5e1' }] },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+            return;
+        }
+        const labels = topEntries.map(([w]) => w.length > 12 ? w.slice(0,10)+'..' : w);
+        const data = topEntries.map(([,c]) => c);
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Word Frequency', data: data, backgroundColor: '#3b82f6', borderRadius: 6 }] },
+            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, grid: { color: '#eef2ff' } } } }
+        });
+    }
+
+    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+    // Process direct text
+    function processDirectText() {
+        const rawText = document.getElementById('directTextInput').value;
+        if (!rawText.trim()) {
+            addHistory("⚠️ Text input is empty. Please enter some text.");
+            return;
+        }
+        const words = tokenizeText(rawText);
+        processWordArray(words, "Direct Text");
+        // optionally keep text area but we keep it
+    }
+
+    // PDF Processing using pdf.js
+    async function processPdfFile(file) {
+        if (!file) return;
+        pdfStatusDiv.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Extracting text from PDF...';
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + ' ';
+                // update progress feel
+                pdfStatusDiv.innerHTML = `<i class="fas fa-spinner fa-pulse"></i> Processing page ${i}/${pdf.numPages}...`;
+            }
+            const words = tokenizeText(fullText);
+            if (words.length === 0) {
+                pdfStatusDiv.innerHTML = '⚠️ PDF has no extractable text.';
+                addHistory(`⚠️ PDF "${file.name}" has no readable text.`);
+                return;
+            }
+            processWordArray(words, `PDF: ${file.name}`);
+            pdfStatusDiv.innerHTML = `✅ PDF processed: ${words.length} words extracted.`;
+        } catch (err) {
+            console.error(err);
+            pdfStatusDiv.innerHTML = '❌ Failed to parse PDF. Make sure text is selectable.';
+            addHistory(`❌ PDF Error: ${err.message}`);
+        }
+    }
+
+    // reset all data (optional clear)
+    function resetAllData() {
+        if (confirm('⚠️ Reset all word count data? This will clear all analyzed text and PDF results.')) {
+            globalWordMap.clear();
+            totalWordsCount = 0;
+            sourcesProcessed = 0;
+            updateDashboard();
+            addHistory('🔄 Session reset. All word data cleared.');
+            historyLogDiv.innerHTML = '<i class="fas fa-info-circle"></i> No analysis yet. Submit text or PDF.';
+            pdfStatusDiv.innerHTML = '';
+            document.getElementById('directTextInput').value = '';
+        }
+    }
+
+    // Add event listeners
+    document.getElementById('processTextBtn').addEventListener('click', processDirectText);
+    document.getElementById('clearTextBtn').addEventListener('click', () => {
+        document.getElementById('directTextInput').value = '';
+        addHistory('✏️ Text area cleared.');
+    });
+    // PDF upload handlers
+    const pdfInput = document.getElementById('pdfFileInput');
+    const uploadBtn = document.getElementById('uploadPdfBtn');
+    const dropZone = document.getElementById('pdfDropZone');
+
+    uploadBtn.addEventListener('click', () => pdfInput.click());
+    pdfInput.addEventListener('change', (e) => {
+        if (e.target.files.length) processPdfFile(e.target.files[0]);
+        pdfInput.value = '';
+    });
+    // drag & drop
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#3b82f6'; });
+    dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#cbd5e1'; });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#cbd5e1';
+        const files = e.dataTransfer.files;
+        if (files.length && files[0].type === 'application/pdf') {
+            processPdfFile(files[0]);
+        } else {
+            pdfStatusDiv.innerHTML = '⚠️ Please drop a valid PDF file.';
+        }
+    });
+    // optional reset button (add floating reset)
+    const resetBtn = document.createElement('button');
+    resetBtn.innerHTML = '<i class="fas fa-broom"></i> Reset All Data';
+    resetBtn.className = 'btn-outline';
+    resetBtn.style.marginTop = '8px';
+    resetBtn.addEventListener('click', resetAllData);
+    document.querySelector('.col-left .card:first-child').appendChild(resetBtn);
+
+    // Demo initial sample to showcase parallel capability
+    function initDemo() {
+        const demoText = "Parallel word counting enables high-performance text analytics. Parallel processing allows multiple documents to be analyzed simultaneously. Word frequency analysis is essential for NLP and information retrieval.";
+        document.getElementById('directTextInput').value = demoText;
+        processDirectText();
+        addHistory('🚀 Demo text preloaded for demonstration.');
+    }
+    initDemo();
+</script>
+</body>
+</html>
